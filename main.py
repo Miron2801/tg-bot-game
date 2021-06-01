@@ -18,6 +18,12 @@ mysql_pass				   = secrets["mysql_pass"]
 
 bot = telebot.TeleBot("1577575841:AAFO0cSv0EMZuMR_L-8CniDh98r8ZUKfoeo")
 users = []
+def send_info_key_board():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    markup.row("Написать в чат")
+    markup.row("Вопрос к матери")
+    markup.row("Пропустить и бросить кубик🎲")
+    return markup
 
 def thread_function(bot, chat_id, message_id):
         num_to_send = randint(0,6)
@@ -46,11 +52,10 @@ def process_cube_result(bot, chat_id, message_id, score_cube):
             exit_str =  strings.result_cube + str(score_cube) + "\n\n" + strings.now_position  + str(user.current_step) + "\n" + strings.theam_position + info_pos[2] + "\n\n" + strings.first_message + str(user.current_step) + ", «" + info_pos[2] + "»\n"
         else:
             exit_str =  strings.result_cube + str(score_cube) + "\n\n" + strings.now_position  + str(user.current_step)+ "\n" + strings.theam_position + info_pos[2] + "\n\n" + strings.first_message + str(user.current_step) + ", <a href = '"+str(info_pos[4])+"'>«" + info_pos[2] + "</a>»\n"
-
-
-
+        user.stage = 4
+        user.sync()
                     
-        bot.send_message(chat_id=chat_id, text=exit_str, parse_mode='HTML')
+        bot.send_message(chat_id=chat_id, text=exit_str, parse_mode='HTML',reply_markup=send_info_key_board())
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
 
@@ -76,7 +81,7 @@ def callback_inline(call):
             
             mythrd = threading.Thread(target= thread_function,args=(bot, call.message.chat.id, call.message.message_id), daemon=True)
             mythrd.start()
-            
+        
 
     elif call.inline_message_id:
         if call.data == "test":
@@ -110,6 +115,7 @@ def send_start(message):
             bot.send_message(chat_id=message.chat.id, text=strings.message_to_form_query, reply_markup=keyboard)
             user.stage = 1
             user.sync()
+            
 @bot.message_handler(func=lambda message: True, content_types=['text'])
 def any_msg(message):
             user = get_user(message.chat.id)
@@ -128,7 +134,12 @@ def any_msg(message):
                 bot.send_message(chat_id=message.chat.id, text = strings.message_reply_get_user_query, reply_markup=keyboard)
                 user.sync()
                 return
-            
+            if(user.stage == 4 and message.text == strings.skip_and_spin_cude ):
+                    user.stage = 0
+                    bot.send_message(chat_id=message.chat.id, text = "Извини у тебя нет подписки оформи или попробуй завтра")
+                    
+                    user.sync()
+
 if __name__ == '__main__':
     #bot.infinity_polling()
     bot.polling(none_stop=True,timeout=1,long_polling_timeout=1)
